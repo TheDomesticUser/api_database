@@ -1,8 +1,8 @@
 import mysql.connector
 
 class DataTransfer:
-    def __init__(self):
-        self.conn = mysql.connector.connect(host='localhost', port='3306', user='root', password='incorrect')
+    def __init__(self, hostInput, portInput, userInput, passwordInput):
+        self.conn = mysql.connector.connect(host=hostInput, port=portInput, user=userInput, password=passwordInput)
         self.cursor = self.conn.cursor()
     def __del__(self):
         self.conn.close()
@@ -11,4 +11,4 @@ class DataTransfer:
             self.cursor.execute(sqlCommand)
             self.conn.commit()
         except:
-            print(f'Failed to execute SQL command: {sqlCommand}')
+            print(f'{sqlCommand}execution has failed.')
