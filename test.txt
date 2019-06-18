@@ -1,0 +1,4 @@
+
+    INSERT INTO testing.typicode(id, name, username, email, address, phone, website, company)
+    VALUES (10, 'Clementina DuBuque', 'Moriah.Stanton', 'Rey.Padberg@karina.biz', {'street': 'Kattie Turnpike', 'suite': 'Suite 198', 'city': 'Lebsackbury', 'zipcode': '31428-2261', 'geo': {'lat': '-38.2386', 'lng': '57.2232'}}, '024-648-3804', 'ambrose.net', '{'name': 'Hoeger LLC', 'catchPhrase': 'Centralized empowering task-force', 'bs': 'target end-to-end models'}')
+    

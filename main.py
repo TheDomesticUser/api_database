@@ -3,9 +3,9 @@ import requests
 import re
 from data_transfer import DataTransfer
 
-# This function converts all string types (str) to VARCHAR(1000)
+# This function converts all string types (str) and dictionary types (dict) to VARCHAR(1000)
 def convertStringToVarchar(string):
-    pattern = r'\bstr\b'
+    pattern = r'(?:\bstr\b|\bdict\b)'
     return re.sub(pattern, 'VARCHAR(1000)', string)
 
 # This function returns quotations around the argument if it is a string
@@ -14,9 +14,37 @@ def insertQuotations(arg):
         return arg
     return f'\'{arg}\''
 
-databaseName = input('Please input the database name you would like to store your information in.')
-tableName = input('Please input the name you would like for your newly created table.')
-url = input('Please input the url containing JSON contents')
+# This function takes the nested object inside the parent object and separates each of the properties through commas
+def objectSeparator(val, string=''):
+    if type(val).__name__ == 'dict':
+        # Iterate each of the values in the object
+        for key, value in val.items():
+            string += f'{key}: {value}, '
+            # Remove the extra comma and whitespace at the end of the string
+            string = string[:-2]
+    return string
+
+
+# "owner": {
+#       "login": "fabpot",
+#       "id": 47313,
+#       "node_id": "MDQ6VXNlcjQ3MzEz",
+#       "avatar_url": "https://avatars3.githubusercontent.com/u/47313?v=4",
+#       "type": {
+#        "Bob": 5,
+#         "Test": "Bob"
+#       }, 
+#       "gravatar_id": "",
+#       "url": "https://api.github.com/users/fabpot",
+#       "html_url": "https://github.com/fabpot",
+#       "followers_url": "https://api.github.com/users/fabpot/followers",
+#       "following_url": "https://api.github.com/users/fabpot/following{/other_user}",
+#       "site_admin": false
+#     }
+
+databaseName = input('Please input the database name you would like to store your information in.\n')
+tableName = input('Please input the name you would like for your newly created table.\n')
+url = input('Please input the url containing JSON contents.\n')
 
 # Get the url JSON contents in the inputted user url
 url_contents = requests.get(url).json()
