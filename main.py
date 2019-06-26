@@ -8,10 +8,13 @@ from data_transfer import DataTransfer
 # (Kattie Turnpike, Suite 198, Lebsackbury, 31428-2261, (-38.2386, 57.2232))', '024-648-3804', 'ambrose.net', 
 # '(Hoeger LLC, Centralized empowering task-force, target end-to-end models)')
 
-# This function converts all string types (str) and dictionary types (dict) to VARCHAR(1000)
-def convertStringToVarchar(string):
-    pattern = r'(?:\bstr\b|\bdict\b)'
-    return re.sub(pattern, 'VARCHAR(1000)', string)
+# This function converts all string types (str), null values (NoneType), and dictionary types (dict) to VARCHAR 
+# with a length depending on the variable type
+def convertVarsToVarchar(string):
+    string = re.sub(r'(?:\bstr\b|\bNoneType\b)', 'VARCHAR(150)', string)
+    string = re.sub(r'\bdict\b', 'VARCHAR(2000)', string)
+
+    return string
 
 # This function returns quotations around the argument if it is a string or dictionary
 def insertQuotations(arg):
@@ -25,9 +28,9 @@ def objectSeparator(val, string=''):
     if type(val).__name__ == 'dict':
         string += '('
         
-        # Iterate through each of the values in the dictionary, checking if they are also a dictionary
-        for value in val.values():
-            string += f'{objectSeparator(value, string)}, '
+        # Iterate through each of the value s in the dictionary, checking if they are also a dictionary
+        for keyIter, valueIter in val.items():
+            string += f'{keyIter}: {objectSeparator(valueIter)}, '
         
         # Remove the extra whitespace and comma at the end
         string = string[:-2]
@@ -36,23 +39,25 @@ def objectSeparator(val, string=''):
         return val
     return string
 
-
-# "owner": {
-#       "login": "fabpot",
-#       "id": 47313,
-#       "node_id": "MDQ6VXNlcjQ3MzEz",
-#       "avatar_url": "https://avatars3.githubusercontent.com/u/47313?v=4",
-#       "type": {
-#        "Bob": 5,
-#         "Test": "Bob"
-#       }, 
-#       "gravatar_id": "",
-#       "url": "https://api.github.com/users/fabpot",
-#       "html_url": "https://github.com/fabpot",
-#       "followers_url": "https://api.github.com/users/fabpot/followers",
-#       "following_url": "https://api.github.com/users/fabpot/following{/other_user}",
-#       "site_admin": false
+# {
+#     "address": {
+#         "street": "Skiles Walks",
+#         "suite": "Suite 351",
+#         "city": "Roscoeview",
+#         "zipcode": "33263",
+#         "geo": {
+#         "lat": "-31.8129",
+#         "lng": "62.5342"
+#         }
+#     },
+#     "phone": "(254)954-1289",
+#     "website": "demarco.info",
+#     "company": {
+#         "name": "Keebler LLC",
+#         "catchPhrase": "User-centric fault-tolerant solution",
+#         "bs": "revolutionize end-to-end systems"
 #     }
+# }
 
 databaseName = input('Please input the database name you would like to store your information in.\n')
 tableName = input('Please input the name you would like for your newly created table.\n')
@@ -73,7 +78,7 @@ for key, value in propertyList.items():
 values = values[:-2]
 
 # Convert all str's and dict's to VARCHAR(1000) in values
-values = convertStringToVarchar(values)
+values = convertVarsToVarchar(values)
 
 # Create the SQL command for creating the table
 createTableCommand = f'''
