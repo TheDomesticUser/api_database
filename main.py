@@ -3,25 +3,37 @@ import requests
 import re
 from data_transfer import DataTransfer
 
+#    VALUES (10, 'Clementina DuBuque', 'Moriah.Stanton', 'Rey.Padberg@karina.biz', 
+# '(Kattie Turnpike, Suite 198, Lebsackbury, 31428-2261, 
+# (Kattie Turnpike, Suite 198, Lebsackbury, 31428-2261, (-38.2386, 57.2232))', '024-648-3804', 'ambrose.net', 
+# '(Hoeger LLC, Centralized empowering task-force, target end-to-end models)')
+
 # This function converts all string types (str) and dictionary types (dict) to VARCHAR(1000)
 def convertStringToVarchar(string):
     pattern = r'(?:\bstr\b|\bdict\b)'
     return re.sub(pattern, 'VARCHAR(1000)', string)
 
-# This function returns quotations around the argument if it is a string
+# This function returns quotations around the argument if it is a string or dictionary
 def insertQuotations(arg):
-    if re.search(r'(?:[0-9]?\.[0-9]+|^[0-9]+$|true|false)', str(arg).lower()):
+    if re.search(r'(?:^[0-9]+\.[0-9]+$|^[0-9]+$|true|false)', str(arg).lower()) and \
+        re.search(r'^[^(].+[^)]$', str(arg)):
         return arg
     return f'\'{arg}\''
 
 # This function takes the nested object inside the parent object and separates each of the properties through commas
 def objectSeparator(val, string=''):
     if type(val).__name__ == 'dict':
-        # Iterate each of the values in the object
-        for key, value in val.items():
-            string += f'{key}: {value}, '
-            # Remove the extra comma and whitespace at the end of the string
-            string = string[:-2]
+        string += '('
+        
+        # Iterate through each of the values in the dictionary, checking if they are also a dictionary
+        for value in val.values():
+            string += f'{objectSeparator(value, string)}, '
+        
+        # Remove the extra whitespace and comma at the end
+        string = string[:-2]
+        string += ')'
+    else:
+        return val
     return string
 
 
@@ -60,7 +72,7 @@ for key, value in propertyList.items():
 # Remove the comma and newline at the end of values
 values = values[:-2]
 
-# Convert all str's to VARCHAR(1000) in values
+# Convert all str's and dict's to VARCHAR(1000) in values
 values = convertStringToVarchar(values)
 
 # Create the SQL command for creating the table
@@ -92,7 +104,7 @@ keys = keys[:-2]
 for data in url_contents:
     dictValue = ''
     for value in data.values():
-        dictValue += f'{insertQuotations(value)}, '
+        dictValue += f'{insertQuotations(objectSeparator(value))}, '
     # Remove the comma and extra whitespace at the end of dictValue
     dictValue = dictValue[:-2]
     
