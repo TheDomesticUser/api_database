@@ -2,12 +2,13 @@ import json
 import requests
 import re
 from data_transfer import DataTransfer
+from amountCalculation import AmountCalculation
 
 # This function converts all string types (str), null values (NoneType), and dictionary types (dict) to VARCHAR 
 # with a length depending on the variable type
-def convertVarsToVarchar(string):
-    string = re.sub(r'(?:\bstr\b|\bNoneType\b)', 'VARCHAR(300)', string) # The VARCHAR length can be any value
-    string = re.sub(r'\bdict\b', 'VARCHAR(1000)', string) # The VARCHAR length can be any value
+def convertVarsToVarchar(string, strVarcharSize, dictVarcharSize):
+    string = re.sub(r'(?:\bstr\b|\bNoneType\b)', f'VARCHAR({strVarcharSize})', string) # The VARCHAR length can be any value
+    string = re.sub(r'\bdict\b', f'VARCHAR({dictVarcharSize})', string) # The VARCHAR length can be any value
 
     return string
 
@@ -28,9 +29,9 @@ def insertQuotations(arg):
     return f'\'{insertBackslashToSingleQuotation(str(arg))}\''
 
 # This function takes the nested object inside the parent object and separates each of the properties through commas
-def objectSeparator(val, string=''):
-    if type(val).__name__ == 'dict':
-        string += '('
+def objectSeparator(val):
+    if type(val) == dict:
+        string = '('
         
         # Iterate through each of the value s in the dictionary, checking if they are also a dictionary
         for keyIter, valueIter in val.items():
@@ -42,6 +43,9 @@ def objectSeparator(val, string=''):
     else:
         return val
     return string
+
+# Initialize amountCalculation for calculating the length of the string or dict with the most characters
+amountCalculation = AmountCalculation()
 
 databaseName = input('Please input the database name you would like to store your information in.\n')
 tableName = input('Please input the name you would like for your newly created table.\n')
@@ -59,16 +63,24 @@ itemDict = {}
 # Change the value according to its type
 for dictionary in url_contents:
     for key, value in dictionary.items():
+        # If the value is a dictionary, convert it to a string having their values separated through brackets
+        valueDictConverted = objectSeparator(value)
+        
+        if type(valueDictConverted) == str:
+            # Set the value max length in the amountCalculation object
+            amountCalculation.setValueMaxLength(key, valueDictConverted)
+
+        # The non-converted dict value is passed as an argument, because all dictionaries will be converted to a VARCHAR later on
         itemDict.update({ key: type(value).__name__ })
 
 # Iterate through the item dict, appending the key and values to the dictContents string
 for key, value in itemDict.items():
     dictContents += f'{key} {value},\n'
 
-# Remove the comma and newline at the end of values
+# Remove the comma and newline at the end of dictContents
 dictContents = dictContents[:-2]
 
-# Convert all str's and dict's to VARCHAR(1000) in values
+# Convert all str's and dict's to VARCHAR with a length depending on the max sizes stored in maxLenDict from amountCalculation
 dictContents = convertVarsToVarchar(dictContents)
 
 # Create the SQL command for creating the table
