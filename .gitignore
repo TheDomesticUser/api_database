@@ -112,3 +112,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Error file
+errors.txt
+
+# Test file
+test.py

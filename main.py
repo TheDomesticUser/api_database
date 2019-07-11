@@ -4,13 +4,8 @@ import re
 from data_transfer import DataTransfer
 from amountCalculation import AmountCalculation
 
-# This function converts all string types (str), null values (NoneType), and dictionary types (dict) to VARCHAR 
-# with a length depending on the variable type
-def convertVarsToVarchar(string, strVarcharSize, dictVarcharSize):
-    string = re.sub(r'(?:\bstr\b|\bNoneType\b)', f'VARCHAR({strVarcharSize})', string) # The VARCHAR length can be any value
-    string = re.sub(r'\bdict\b', f'VARCHAR({dictVarcharSize})', string) # The VARCHAR length can be any value
-
-    return string
+# Initialize amountCalculation for calculating the length of the string or dict with the most characters and for usability in the pre-defined functions
+amountCalculation = AmountCalculation()
 
 # This function adds a backslash to every single quotation in the string. Used in the insertQuotations(arg) function
 def insertBackslashToSingleQuotation(string):
@@ -44,8 +39,14 @@ def objectSeparator(val):
         return val
     return string
 
-# Initialize amountCalculation for calculating the length of the string or dict with the most characters
-amountCalculation = AmountCalculation()
+# This function converts all string types (str), null values (NoneType), and dictionary types (dict) to VARCHAR 
+# with a length depending on the max sizes in amountCalculation.maxLenDict
+def convertVarsToVarchar(key, value):
+    # Set the VARCHAR length if the type is a string or dictionary
+    if key in amountCalculation.maxLenDict.keys():
+        value = f'VARCHAR({amountCalculation.maxLenDict[key]})'
+
+    return value
 
 databaseName = input('Please input the database name you would like to store your information in.\n')
 tableName = input('Please input the name you would like for your newly created table.\n')
@@ -69,19 +70,20 @@ for dictionary in url_contents:
         if type(valueDictConverted) == str:
             # Set the value max length in the amountCalculation object
             amountCalculation.setValueMaxLength(key, valueDictConverted)
+        elif type(valueDictConverted).__name__ == 'NoneType':
+            # Set None as parameter, because 'None' is set in the SQL database if the JSON value is null, which must be a string
+            amountCalculation.setValueMaxLength(key, 'None')
 
         # The non-converted dict value is passed as an argument, because all dictionaries will be converted to a VARCHAR later on
         itemDict.update({ key: type(value).__name__ })
 
-# Iterate through the item dict, appending the key and values to the dictContents string
+# Iterate through the item dict, appending the key and values to the dictContents string and setting the VARCHAR lengths depending on the max size
 for key, value in itemDict.items():
-    dictContents += f'{key} {value},\n'
+    # Wrap all keys around backticks to ensure there is no conflictions between reserved keywords
+    dictContents += f'`{key}` {convertVarsToVarchar(key, value)},\n'
 
 # Remove the comma and newline at the end of dictContents
 dictContents = dictContents[:-2]
-
-# Convert all str's and dict's to VARCHAR with a length depending on the max sizes stored in maxLenDict from amountCalculation
-dictContents = convertVarsToVarchar(dictContents)
 
 # Create the SQL command for creating the table
 createTableCommand = f'''
@@ -99,13 +101,24 @@ dataTransfer.insertData(createTableCommand)
 
 ############################## INSERT THE JSON DATA INTO THE TABLE ########################################
 
+# Print out the amount of dictionaries in the array given for JSON manipulation
+print(f'There are {len(url_contents)} dictionaries in the given array. Starting...')
+
+# Set the counter
+iterCount = 0
+
 # Iterate through the url_contents, getting their values and adding them in the MYSQL database
 for data in url_contents:
+    # Print out the iteration the program is currently on
+    print(f'Inserting the dictionary data in the array of index {iterCount}...')
+    iterCount += 1
+
     keys = ''
 
-    # Iterate through the url contents with index 0, getting the keys and separating them with commas
+    # Iterate through the url contents with index 0, getting the keys and separating them with commas.
+    # Wrap the key around backticks, ensuring there are no conflictions between reserved keywords
     for key in data:
-        keys += f'{key}, '
+        keys += f'`{key}`, '
 
     # Remove the extra comma and whitespace at the end of keys
     keys = keys[:-2]
@@ -124,3 +137,5 @@ for data in url_contents:
 
     # Execute the statement
     dataTransfer.insertData(insertDataStatement)
+
+print('Program has finished.')
