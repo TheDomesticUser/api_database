@@ -60,27 +60,41 @@ url_contents = requests.get(url).json()
 dictContents = ''
 itemDict = {}
 
-# Iterate through each dictionary inside the url contents, updating the items to the item dict, assuring all the keys are unique.
-# Change the value according to its type
-for dictionary in url_contents:
-    for key, value in dictionary.items():
+# Set the properties according to the JSON data variable type
+if type(url_contents) == dict:
+    # Iterate through the key in values in the dictionary items
+    for key, value in url_contents.items():
         # If the value is a dictionary, convert it to a string having their values separated through brackets
         valueDictConverted = objectSeparator(value)
-        
+
+        # Append the keys and values to dictContents. The value is declared depending on its type
         if type(valueDictConverted) == str:
-            # Set the value max length in the amountCalculation object
-            amountCalculation.setValueMaxLength(key, valueDictConverted)
-        elif type(valueDictConverted).__name__ == 'NoneType':
-            # Set None as parameter, because 'None' is set in the SQL database if the JSON value is null, which must be a string
-            amountCalculation.setValueMaxLength(key, 'None')
+            dictContents += f'{key} VARCHAR({len(valueDictConverted)}),'
+        else:
+            dictContents += f'{key} {type(valueDictConverted).__name__},'
+elif type(url_contents) == list:
+    # Iterate through each dictionary inside the url contents, updating the items to the item dict, assuring all the keys are unique.
+    # Change the value according to its type
+    for dictionary in url_contents:
+        for key, value in dictionary.items():
+            # If the value is a dictionary, convert it to a string having their values separated through brackets
+            valueDictConverted = objectSeparator(value)
+            
+            if type(valueDictConverted) == str:
+                # Set the value max length in the amountCalculation object
+                amountCalculation.setValueMaxLength(key, valueDictConverted)
+            elif type(valueDictConverted).__name__ == 'NoneType':
+                # Set None as parameter, because 'None' is set in the SQL database if the JSON value is null, which must be a string
+                amountCalculation.setValueMaxLength(key, 'None')
 
-        # The non-converted dict value is passed as an argument, because all dictionaries will be converted to a VARCHAR later on
-        itemDict.update({ key: type(value).__name__ })
+            # The non-converted dict value is passed as an argument, because all dictionaries will be converted to a VARCHAR later on
+            itemDict.update({ key: type(value).__name__ })
 
-# Iterate through the item dict, appending the key and values to the dictContents string and setting the VARCHAR lengths depending on the max size
-for key, value in itemDict.items():
-    # Wrap all keys around backticks to ensure there is no conflictions between reserved keywords
-    dictContents += f'`{key}` {convertVarsToVarchar(key, value)},\n'
+    # Iterate through the item dict, appending the key and values to the dictContents string and setting the VARCHAR lengths depending on the max size
+    for key, value in itemDict.items():
+        # Wrap all keys around backticks to ensure there is no conflictions between reserved keywords
+        dictContents += f'`{key}` {convertVarsToVarchar(key, value)},\n'
+
 
 # Remove the comma and newline at the end of dictContents
 dictContents = dictContents[:-2]
